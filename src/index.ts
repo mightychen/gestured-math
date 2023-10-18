@@ -18,7 +18,9 @@ import {
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
 const boundsX = 10
-const boundsY = 7.5 
+const boundsY = 7.5
+
+const initialStateURL = "https://saved-work.desmos.com/calc-states/production/dnm2bpvm6c"
 
 // Calculator code
 var elt = document.getElementById('calculator');
@@ -29,6 +31,16 @@ var calculator = Desmos.GraphingCalculator(elt, {
   lockViewport: true,
   border: false
 });
+
+let initialStateCall = async () => await fetch(initialStateURL)
+.then( (response) => response.json())
+.then( (responseJson) => {
+  let initialState = responseJson
+  console.log("setting calc state!")
+  calculator.setState(initialState)
+})
+initialStateCall()
+
 
 calculator.setExpression({ id: '0', latex: 'P_{0}=\\left(0,0\\right)' });
 calculator.setExpression({ id: '1', latex: 'P_{1}=\\left(0,0\\right)' });
