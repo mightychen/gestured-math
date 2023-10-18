@@ -17,6 +17,31 @@ import {
   FilesetResolver
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
+const boundsX = 10
+const boundsY = 7.5 
+
+// Calculator code
+var elt = document.getElementById('calculator');
+var calculator = Desmos.GraphingCalculator(elt, {
+  expressions: false,
+  // settingsMenu: false,
+  zoomButtons: false,
+  lockViewport: true,
+  border: false
+});
+
+calculator.setExpression({ id: '0', latex: 'P_{0}=\\left(0,0\\right)' });
+calculator.setExpression({ id: '1', latex: 'P_{1}=\\left(0,0\\right)' });
+
+
+function normalizedToGraphCoordinate(landmark) {
+  return {
+    x: -1 * ((landmark.x * 2 * boundsX) - boundsX),
+    y: -1 * ((landmark.y * 2 * boundsY) - boundsY),
+    z: landmark.z
+  }
+}
+
 const demosSection = document.getElementById("demos");
 
 let handLandmarker = undefined;
@@ -44,72 +69,8 @@ const createHandLandmarker = async () => {
 createHandLandmarker();
 
 /********************************************************************
-// Demo 1: Grab a bunch of images from the page and detection them
-// upon click.
-********************************************************************/
-
-// In this demo, we have put all our clickable images in divs with the
-// CSS class 'detectionOnClick'. Lets get all the elements that have
-// this class.
-const imageContainers = document.getElementsByClassName("detectOnClick");
-
-// Now let's go through all of these and add a click event listener.
-for (let i = 0; i < imageContainers.length; i++) {
-  // Add event listener to the child element whichis the img element.
-  imageContainers[i].children[0].addEventListener("click", handleClick);
-}
-
-// When an image is clicked, let's detect it and display results!
-async function handleClick(event) {
-  if (!handLandmarker) {
-    console.log("Wait for handLandmarker to load before clicking!");
-    return;
-  }
-
-  if (runningMode === "VIDEO") {
-    runningMode = "IMAGE";
-    await handLandmarker.setOptions({ runningMode: "IMAGE" });
-  }
-  // Remove all landmarks drawed before
-  const allCanvas = event.target.parentNode.getElementsByClassName("canvas");
-  for (var i = allCanvas.length - 1; i >= 0; i--) {
-    const n = allCanvas[i];
-    n.parentNode.removeChild(n);
-  }
-
-  // We can call handLandmarker.detect as many times as we like with
-  // different image data each time. This returns a promise
-  // which we wait to complete and then call a function to
-  // print out the results of the prediction.
-  const handLandmarkerResult = handLandmarker.detect(event.target);
-  console.log(handLandmarkerResult.handednesses[0][0]);
-  const canvas = document.createElement("canvas");
-  canvas.setAttribute("class", "canvas");
-  canvas.setAttribute("width", event.target.naturalWidth + "px");
-  canvas.setAttribute("height", event.target.naturalHeight + "px");
-  canvas.style =
-    "left: 0px;" +
-    "top: 0px;" +
-    "width: " +
-    event.target.width +
-    "px;" +
-    "height: " +
-    event.target.height +
-    "px;";
-
-  event.target.parentNode.appendChild(canvas);
-  const cxt = canvas.getContext("2d");
-  for (const landmarks of handLandmarkerResult.landmarks) {
-    drawConnectors(cxt, landmarks, HAND_CONNECTIONS, {
-      color: "#00FF00",
-      lineWidth: 5
-    });
-    drawLandmarks(cxt, landmarks, { color: "#FF0000", lineWidth: 1 });
-  }
-}
-
-/********************************************************************
 // Demo 2: Continuously grab image from webcam stream and detect it.
+https://developers.google.com/mediapipe/solutions/vision/hand_landmarker/web_js
 ********************************************************************/
 
 const video = document.getElementById("webcam") as HTMLVideoElement;
@@ -179,12 +140,72 @@ async function predictWebcam() {
   canvasCtx.save();
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
   if (results.landmarks) {
-    for (const landmarks of results.landmarks) {
-      drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
-        color: "#00FF00",
-        lineWidth: 5
-      });
-      drawLandmarks(canvasCtx, landmarks, { color: "#FF0000", lineWidth: 2 });
+    console.log(results)
+    if (results.handednesses.length == 1) {
+      let handednesses = results.handednesses[0][0].categoryName
+      
+      // P0 = Right Hand
+      // P1 = Left Hand
+
+      if (handednesses === "Right") {
+        // One hand, right hand
+        let graphBoundedLandmarkRight = normalizedToGraphCoordinate(results.landmarks[0][8])
+
+        drawLandmarks(canvasCtx, [results.landmarks[0][8]], { color: "#FF0000", lineWidth: 2 });
+
+        calculator.setExpression({
+          id: '0',
+          latex: `P_{0}=\\left(${graphBoundedLandmarkRight.x},${graphBoundedLandmarkRight.y}\\right)`
+        });
+      } else {
+        // One hand, left hand
+        let graphBoundedLandmarkLeft = normalizedToGraphCoordinate(results.landmarks[0][8])
+
+        drawLandmarks(canvasCtx, [results.landmarks[0][8]], { color: "#00FF00", lineWidth: 2 });
+
+        calculator.setExpression({
+          id: '1',
+          latex: `P_{1}=\\left(${graphBoundedLandmarkLeft.x},${graphBoundedLandmarkLeft.y}\\right)`
+        });
+      }
+
+    } else if (results.handednesses.length == 2) {
+      let handednesses = results.handednesses[0][0].categoryName
+
+      if (handednesses === "Right") {
+        // Two hands, 0 is Right hand, 1 is left hand
+        let graphBoundedLandmarkRight = normalizedToGraphCoordinate(results.landmarks[0][8])
+        let graphBoundedLandmarkLeft = normalizedToGraphCoordinate(results.landmarks[1][8])
+
+        drawLandmarks(canvasCtx, [results.landmarks[0][8]], { color: "#FF0000", lineWidth: 2 });
+        drawLandmarks(canvasCtx, [results.landmarks[1][8]], { color: "#00FF00", lineWidth: 2 });
+
+        calculator.setExpression({
+          id: '0',
+          latex: `P_{0}=\\left(${graphBoundedLandmarkRight.x},${graphBoundedLandmarkRight.y}\\right)`
+        });
+        calculator.setExpression({
+          id: '1',
+          latex: `P_{1}=\\left(${graphBoundedLandmarkLeft.x},${graphBoundedLandmarkLeft.y}\\right)`
+        });
+      } else {
+        // Two hands, 1 is Right hand, 0 is left hand
+        let graphBoundedLandmarkRight = normalizedToGraphCoordinate(results.landmarks[1][8])
+        let graphBoundedLandmarkLeft = normalizedToGraphCoordinate(results.landmarks[0][8])
+
+        drawLandmarks(canvasCtx, [results.landmarks[0][8]], { color: "#00FF00", lineWidth: 2 });
+        drawLandmarks(canvasCtx, [results.landmarks[1][8]], { color: "#FF0000", lineWidth: 2 });
+
+        calculator.setExpression({
+          id: '0',
+          latex: `P_{0}=\\left(${graphBoundedLandmarkRight.x},${graphBoundedLandmarkRight.y}\\right)`
+        });
+        calculator.setExpression({
+          id: '1',
+          latex: `P_{1}=\\left(${graphBoundedLandmarkLeft.x},${graphBoundedLandmarkLeft.y}\\right)`
+        });
+      }
+
     }
   }
   canvasCtx.restore();
