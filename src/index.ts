@@ -20,31 +20,33 @@ import {
 const boundsX = 10
 const boundsY = 7.5
 
-const initialStateURL = "https://saved-work.desmos.com/calc-states/production/dnm2bpvm6c"
+let url = new URLSearchParams(window.location.search).get('url')
 
+const initialStateURL = `https://saved-work.desmos.com/calc-states/production/${url || "n1zoks8jsd"}`
 // Calculator code
+
 var elt = document.getElementById('calculator');
 var calculator = Desmos.GraphingCalculator(elt, {
   expressions: false,
   // settingsMenu: false,
   zoomButtons: false,
   lockViewport: true,
-  border: false
+  border: true
 });
 
 let initialStateCall = async () => await fetch(initialStateURL)
 .then( (response) => response.json())
 .then( (responseJson) => {
   let initialState = responseJson
-  console.log("setting calc state!")
   calculator.setState(initialState)
 })
 initialStateCall()
 
 
-calculator.setExpression({ id: '0', latex: 'P_{0}=\\left(0,0\\right)' });
-calculator.setExpression({ id: '1', latex: 'P_{1}=\\left(0,0\\right)' });
-
+calculator.setExpression({ id: 'x0', latex: 'x_{0}=0' });
+calculator.setExpression({ id: 'y0', latex: 'y_{0}=0' });
+calculator.setExpression({ id: 'x1', latex: 'x_{1}=0' });
+calculator.setExpression({ id: 'y1', latex: 'y_{1}=0' });
 
 function normalizedToGraphCoordinate(landmark) {
   return {
@@ -152,7 +154,6 @@ async function predictWebcam() {
   canvasCtx.save();
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
   if (results.landmarks) {
-    console.log(results)
     if (results.handednesses.length == 1) {
       let handednesses = results.handednesses[0][0].categoryName
       
@@ -165,20 +166,17 @@ async function predictWebcam() {
 
         drawLandmarks(canvasCtx, [results.landmarks[0][8]], { color: "#FF0000", lineWidth: 2 });
 
-        calculator.setExpression({
-          id: '0',
-          latex: `P_{0}=\\left(${graphBoundedLandmarkRight.x},${graphBoundedLandmarkRight.y}\\right)`
-        });
+        calculator.setExpression({ id: 'x0', latex: `x_{0}=${graphBoundedLandmarkRight.x}` });
+        calculator.setExpression({ id: 'y0', latex: `y_{0}=${graphBoundedLandmarkRight.y}` });
+
       } else {
         // One hand, left hand
         let graphBoundedLandmarkLeft = normalizedToGraphCoordinate(results.landmarks[0][8])
 
         drawLandmarks(canvasCtx, [results.landmarks[0][8]], { color: "#00FF00", lineWidth: 2 });
 
-        calculator.setExpression({
-          id: '1',
-          latex: `P_{1}=\\left(${graphBoundedLandmarkLeft.x},${graphBoundedLandmarkLeft.y}\\right)`
-        });
+        calculator.setExpression({ id: 'x1', latex: `x_{1}=${graphBoundedLandmarkLeft.x}` });
+        calculator.setExpression({ id: 'y1', latex: `y_{1}=${graphBoundedLandmarkLeft.y}` });
       }
 
     } else if (results.handednesses.length == 2) {
@@ -192,14 +190,12 @@ async function predictWebcam() {
         drawLandmarks(canvasCtx, [results.landmarks[0][8]], { color: "#FF0000", lineWidth: 2 });
         drawLandmarks(canvasCtx, [results.landmarks[1][8]], { color: "#00FF00", lineWidth: 2 });
 
-        calculator.setExpression({
-          id: '0',
-          latex: `P_{0}=\\left(${graphBoundedLandmarkRight.x},${graphBoundedLandmarkRight.y}\\right)`
-        });
-        calculator.setExpression({
-          id: '1',
-          latex: `P_{1}=\\left(${graphBoundedLandmarkLeft.x},${graphBoundedLandmarkLeft.y}\\right)`
-        });
+        calculator.setExpression({ id: 'x0', latex: `x_{0}=${graphBoundedLandmarkRight.x}` });
+        calculator.setExpression({ id: 'y0', latex: `y_{0}=${graphBoundedLandmarkRight.y}` });
+
+        calculator.setExpression({ id: 'x1', latex: `x_{1}=${graphBoundedLandmarkLeft.x}` });
+        calculator.setExpression({ id: 'y1', latex: `y_{1}=${graphBoundedLandmarkLeft.y}` });
+
       } else {
         // Two hands, 1 is Right hand, 0 is left hand
         let graphBoundedLandmarkRight = normalizedToGraphCoordinate(results.landmarks[1][8])
@@ -208,14 +204,11 @@ async function predictWebcam() {
         drawLandmarks(canvasCtx, [results.landmarks[0][8]], { color: "#00FF00", lineWidth: 2 });
         drawLandmarks(canvasCtx, [results.landmarks[1][8]], { color: "#FF0000", lineWidth: 2 });
 
-        calculator.setExpression({
-          id: '0',
-          latex: `P_{0}=\\left(${graphBoundedLandmarkRight.x},${graphBoundedLandmarkRight.y}\\right)`
-        });
-        calculator.setExpression({
-          id: '1',
-          latex: `P_{1}=\\left(${graphBoundedLandmarkLeft.x},${graphBoundedLandmarkLeft.y}\\right)`
-        });
+        calculator.setExpression({ id: 'x0', latex: `x_{0}=${graphBoundedLandmarkRight.x}` });
+        calculator.setExpression({ id: 'y0', latex: `y_{0}=${graphBoundedLandmarkRight.y}` });
+
+        calculator.setExpression({ id: 'x1', latex: `x_{1}=${graphBoundedLandmarkLeft.x}` });
+        calculator.setExpression({ id: 'y1', latex: `y_{1}=${graphBoundedLandmarkLeft.y}` });
       }
 
     }
